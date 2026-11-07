@@ -116,7 +116,7 @@ export default function CombustaoEtanol() {
     <section className="content-section extra-section">
       <div className="section-intro">
         <div>
-          <div className="eyebrow">05 / experimento prático</div>
+          <div className="eyebrow">03 / termoquímica prática</div>
           <h2>Combustão de Combustíveis (Calorimetria)</h2>
         </div>
         <p>
@@ -175,7 +175,7 @@ export default function CombustaoEtanol() {
             >
               {COMBUSTIVEIS.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.formula})
+                  {c.name}
                 </option>
               ))}
             </select>

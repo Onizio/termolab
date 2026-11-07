@@ -2,6 +2,9 @@ import React, { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './styles.css'
+import './editorial.css'
+import './tabfolio.css'
+import './apple.css'
 
 class ErrorBoundary extends Component {
   state = { error: null }

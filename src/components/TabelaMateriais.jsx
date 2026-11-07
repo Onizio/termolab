@@ -8,8 +8,15 @@ export default function TabelaMateriais({ onSelectMaterial }) {
   const [sortField, setSortField] = useState('valueDesc') // 'valueDesc', 'valueAsc', 'nameAsc', 'nameDesc'
   const [copiedName, setCopiedName] = useState(null)
 
-  const categories = useMemo(() => {
-    return ['Todos', ...new Set(TABELA_SUBSTANCIAS.map((item) => item.category).filter(Boolean))]
+  // Categorias com contagem
+  const categoryStats = useMemo(() => {
+    const rawCategories = ['Todos', ...new Set(TABELA_SUBSTANCIAS.map((item) => item.category).filter(Boolean))]
+    return rawCategories.map((cat) => {
+      const count = cat === 'Todos'
+        ? TABELA_SUBSTANCIAS.length
+        : TABELA_SUBSTANCIAS.filter((i) => i.category === cat).length
+      return { name: cat, count }
+    })
   }, [])
 
   const filtered = useMemo(() => {
@@ -32,7 +39,7 @@ export default function TabelaMateriais({ onSelectMaterial }) {
   }, [search, category, sortField])
 
   const copySpecificHeat = (item) => {
-    const text = `${item.name}: c = ${item.value} cal/g·°C (${item.valueJ} J/g·°C)`
+    const text = `${item.name} (${item.symbol}): c = ${item.value} cal/g·°C (${item.valueJ} J/g·°C)`
     navigator.clipboard?.writeText(text)
     setCopiedName(item.name)
     setTimeout(() => setCopiedName(null), 1800)
@@ -46,78 +53,104 @@ export default function TabelaMateriais({ onSelectMaterial }) {
     }
   }
 
+  // Máximo para a barra relativa de calor específico (a água é a referência = 1.0)
+  const maxCal = 1.0
+
   return (
-    <section className="content-section">
+    <section className="content-section table-section-fresh">
+      {/* CABEÇALHO */}
       <div className="section-intro">
         <div>
-          <div className="eyebrow">02 / referência termodinâmica</div>
-          <h2>Tabela de Calores Específicos e Propriedades Térmicas</h2>
+          <div className="eyebrow">05 / referência termodinâmica</div>
+          <h2>Tabela de Calores Específicos &amp; Propriedades Térmicas</h2>
         </div>
         <p>
-          Energia necessária para elevar em 1 °C a temperatura de 1 g da substância (à pressão atmosférica constante).
+          Energia necessária para elevar em 1 °C a temperatura de 1 g da substância sob pressão constante.
+          Compare a inércia térmica dos materiais do cotidiano com a água.
         </p>
       </div>
 
-      <div className="table-controls panel inputs-panel">
-        <div className="table-search-box">
-          <label htmlFor="tabela-search">Buscar substância ou símbolo</label>
-          <div className="search-input-wrapper">
-            <input
-              id="tabela-search"
-              type="search"
-              placeholder="Ex: Ferro, Fe, Água, Ouro..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button
-                type="button"
-                className="clear-search-btn"
-                onClick={() => setSearch('')}
-                title="Limpar busca"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+      {/* CARDS DE DESTAQUE TERMODINÂMICO (HERO STATS) */}
+      <div className="table-hero-stats">
+        <div className="hero-stat-card high-capacity">
+          <div className="stat-card-badge">💧 Maior Calor Específico</div>
+          <div className="stat-card-value">1,00 <small>cal/g·°C</small></div>
+          <div className="stat-card-name">Água Líquida (H₂O)</div>
+          <p className="stat-card-desc">
+            Exige enorme quantidade de energia para mudar de temperatura. Atua como o moderador térmico da Terra e do corpo humano.
+          </p>
         </div>
 
-        <div className="table-filters">
-          <label>Filtrar por grupo</label>
-          <div className="filter-chips">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={`filter-chip ${category === cat ? 'active' : ''}`}
-                onClick={() => setCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+        <div className="hero-stat-card low-capacity">
+          <div className="stat-card-badge">⚡ Menor Calor Específico</div>
+          <div className="stat-card-value">0,031 <small>cal/g·°C</small></div>
+          <div className="stat-card-name">Ouro (Au) &amp; Chumbo (Pb)</div>
+          <p className="stat-card-desc">
+            Esquentam e esfriam 32 vezes mais rápido que a água com a mesma quantidade de calor.
+          </p>
         </div>
 
-        <div className="table-unit-toggle">
-          <label>Unidade de exibição</label>
-          <div className="segmented-control">
+        <div className="hero-stat-card count-capacity">
+          <div className="stat-card-badge">📚 Materiais Catalogados</div>
+          <div className="stat-card-value">{TABELA_SUBSTANCIAS.length} <small>substâncias</small></div>
+          <div className="stat-card-name">Banco de Dados Didático</div>
+          <p className="stat-card-desc">
+            Propriedades completas com pontos de fusão, ebulição e calores latentes conforme o currículo do Ensino Médio e ENEM.
+          </p>
+        </div>
+      </div>
+
+      {/* BARRA DE CONTROLES MODERNA (DASHBOARD TOOLBAR) */}
+      <div className="table-dashboard-toolbar">
+        {/* BUSCA COM ÍCONE */}
+        <div className="table-search-pill">
+          <span className="search-icon-svg" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            id="tabela-search"
+            type="search"
+            placeholder="Buscar por nome, símbolo químico ou categoria..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar substância ou símbolo"
+          />
+          {search && (
             <button
               type="button"
-              className={unit === 'ambas' ? 'active' : ''}
+              className="clear-search-pill-btn"
+              onClick={() => setSearch('')}
+              title="Limpar busca"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* ALTERNADOR DE UNIDADES EM PÍLULA */}
+        <div className="table-unit-pill-selector">
+          <span className="unit-selector-label">Unidade:</span>
+          <div className="unit-pill-group">
+            <button
+              type="button"
+              className={unit === 'ambas' ? 'unit-pill active' : 'unit-pill'}
               onClick={() => setUnit('ambas')}
             >
-              Ambas
+              Ambas (cal + J)
             </button>
             <button
               type="button"
-              className={unit === 'cal' ? 'active' : ''}
+              className={unit === 'cal' ? 'unit-pill active' : 'unit-pill'}
               onClick={() => setUnit('cal')}
             >
               cal/g·°C
             </button>
             <button
               type="button"
-              className={unit === 'J' ? 'active' : ''}
+              className={unit === 'J' ? 'unit-pill active' : 'unit-pill'}
               onClick={() => setUnit('J')}
             >
               J/g·°C (SI)
@@ -126,138 +159,291 @@ export default function TabelaMateriais({ onSelectMaterial }) {
         </div>
       </div>
 
-      <div className="table-status-bar">
-        <span>
-          Mostrando <strong>{filtered.length}</strong> de {TABELA_SUBSTANCIAS.length} substâncias catalogadas.
-        </span>
-        <span className="sort-hint">
-          Dica: clique nos cabeçalhos <em>Substância</em> ou <em>Calor Específico</em> para ordenar.
-        </span>
+      {/* FILTROS DE CATEGORIA EM CHIPS MODERNOS */}
+      <div className="table-category-chips-bar">
+        <div className="chips-scroll-container">
+          {categoryStats.map((cat) => {
+            const isActive = category === cat.name
+            return (
+              <button
+                key={cat.name}
+                type="button"
+                className={`table-category-chip ${isActive ? 'active' : ''}`}
+                onClick={() => setCategory(cat.name)}
+              >
+                <span>{cat.name}</span>
+                <span className="chip-count-badge">{cat.count}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="table-meta-summary">
+          <span>Mostrando <strong>{filtered.length}</strong> de {TABELA_SUBSTANCIAS.length} materiais</span>
+        </div>
       </div>
 
-      <div className="material-table-container">
-        <div className="material-table">
-          <div className="table-header-row">
-            <span>#</span>
-            <span />
-            <button
-              type="button"
-              className="table-sort-header"
-              onClick={() => toggleSort('name')}
-              title="Clique para ordenar por nome"
-            >
-              Substância {sortField === 'nameAsc' ? '▲' : sortField === 'nameDesc' ? '▼' : '↕'}
-            </button>
-            <span>Fórmula</span>
-            <span>Categoria</span>
-            <button
-              type="button"
-              className="table-sort-header"
-              onClick={() => toggleSort('value')}
-              title="Clique para ordenar por calor específico"
-            >
-              Calor Específico (c) {sortField === 'valueDesc' ? '▼' : sortField === 'valueAsc' ? '▲' : '↕'}
-            </button>
-            <span>Propriedades de Fase</span>
-            <span>Ações</span>
+      {/* ESTADO VAZIO (SE BUSCA NÃO RETORNAR NADA) */}
+      {filtered.length === 0 ? (
+        <div className="table-empty-card">
+          <span className="empty-emoji">🔍</span>
+          <h3>Nenhuma substância encontrada para "{search}"</h3>
+          <p>Tente buscar por termos mais genéricos, símbolos químicos (ex.: Fe, Cu, H₂O) ou limpe o filtro.</p>
+          <button
+            type="button"
+            className="empty-reset-btn"
+            onClick={() => {
+              setSearch('')
+              setCategory('Todos')
+            }}
+          >
+            Limpar Filtros de Busca
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* ========================================================
+              VISUALIZAÇÃO DESKTOP: TABELA LIMPA COM BARRAS DE MAGNITUDE
+             ======================================================== */}
+          <div className="table-desktop-view">
+            <div className="fresh-table-card">
+              <table className="fresh-data-table">
+                <thead>
+                  <tr>
+                    <th className="th-num">#</th>
+                    <th className="th-name">
+                      <button
+                        type="button"
+                        className="th-sortable-btn"
+                        onClick={() => toggleSort('name')}
+                        title="Clique para ordenar por nome"
+                      >
+                        <span>Substância &amp; Fórmula</span>
+                        <span className="sort-icon">{sortField === 'nameAsc' ? '▲' : sortField === 'nameDesc' ? '▼' : '↕'}</span>
+                      </button>
+                    </th>
+                    <th className="th-category">Categoria</th>
+                    <th className="th-specific-heat">
+                      <button
+                        type="button"
+                        className="th-sortable-btn"
+                        onClick={() => toggleSort('value')}
+                        title="Clique para ordenar por calor específico"
+                      >
+                        <span>Calor Específico (c) &amp; Magnitude</span>
+                        <span className="sort-icon">{sortField === 'valueDesc' ? '▼' : sortField === 'valueAsc' ? '▲' : '↕'}</span>
+                      </button>
+                    </th>
+                    <th className="th-phase">Mudanças de Fase</th>
+                    <th className="th-actions">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((item, index) => {
+                    const barPercent = Math.min(100, Math.max(3, (item.value / maxCal) * 100))
+                    return (
+                      <tr key={item.name} className="fresh-table-row">
+                        <td className="td-num">{String(index + 1).padStart(2, '0')}</td>
+                        <td className="td-name">
+                          <div className="substance-meta-cell">
+                            <span
+                              className="material-color-dot"
+                              style={{ backgroundColor: item.color || '#3b82f6' }}
+                              title={`Cor de identificação: ${item.name}`}
+                            />
+                            <div className="substance-info-text">
+                              <div className="name-and-formula">
+                                <strong className="substance-title">{item.name}</strong>
+                                {item.symbol && item.symbol !== '—' && (
+                                  <span className="substance-formula-badge">{item.symbol}</span>
+                                )}
+                              </div>
+                              {item.description && (
+                                <p className="substance-short-desc">{item.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="td-category">
+                          <span className={`category-pill-tag cat-${item.category?.toLowerCase() || 'geral'}`}>
+                            {item.category}
+                          </span>
+                        </td>
+                        <td className="td-specific-heat">
+                          <div className="specific-heat-cell">
+                            <div className="specific-heat-numbers">
+                              {(unit === 'cal' || unit === 'ambas') && (
+                                <span className="val-cal">
+                                  <strong>{item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</strong>
+                                  <small> cal/g·°C</small>
+                                </span>
+                              )}
+                              {unit === 'ambas' && <span className="val-divider">•</span>}
+                              {(unit === 'J' || unit === 'ambas') && (
+                                <span className="val-joule">
+                                  <strong>{item.valueJ.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</strong>
+                                  <small> J/g·°C</small>
+                                </span>
+                              )}
+                            </div>
+                            {/* Barra visual de capacidade térmica relativa */}
+                            <div className="heat-bar-track" title={`${item.name}: ${barPercent.toFixed(0)}% da inércia da água`}>
+                              <div
+                                className="heat-bar-fill"
+                                style={{
+                                  width: `${barPercent}%`,
+                                  backgroundColor: item.color || 'var(--orange)',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="td-phase">
+                          <div className="phase-cell-content">
+                            {item.meltingPoint !== undefined && (
+                              <span className="phase-tag fusion" title="Ponto de Fusão">
+                                ❄️ Fusão: <b>{item.meltingPoint} °C</b>
+                                {item.latentFusion ? <small> (Lf: {item.latentFusion} cal/g)</small> : null}
+                              </span>
+                            )}
+                            {item.boilingPoint !== undefined && (
+                              <span className="phase-tag boiling" title="Ponto de Ebulição">
+                                ♨️ Ebulição: <b>{item.boilingPoint} °C</b>
+                                {item.latentVaporization ? <small> (Lv: {item.latentVaporization} cal/g)</small> : null}
+                              </span>
+                            )}
+                            {item.meltingPoint === undefined && item.boilingPoint === undefined && (
+                              <span className="phase-tag neutral">—</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="td-actions">
+                          <div className="table-row-actions">
+                            <button
+                              type="button"
+                              className="btn-table-copy"
+                              onClick={() => copySpecificHeat(item)}
+                              title="Copiar valor térmico"
+                            >
+                              {copiedName === item.name ? '✓ Copiado' : '📋 Copiar'}
+                            </button>
+                            {onSelectMaterial && (
+                              <button
+                                type="button"
+                                className="btn-table-use"
+                                onClick={() => onSelectMaterial(item.name)}
+                                title={`Carregar ${item.name} na calculadora`}
+                              >
+                                Calcular ➜
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {filtered.length === 0 ? (
-            <div className="empty-table-state">
-              Nenhuma substância encontrada para "{search}".
-              <br />
-              <button
-                type="button"
-                className="reset-filter-btn"
-                onClick={() => {
-                  setSearch('')
-                  setCategory('Todos')
-                }}
-              >
-                Limpar filtros de busca
-              </button>
-            </div>
-          ) : (
-            filtered.map((item, index) => (
-              <div className="table-row" key={item.name}>
-                <span className="table-index">{String(index + 1).padStart(2, '0')}</span>
-                <span className="material-dot" style={{ background: item.color }} />
-                <div className="material-name-col">
-                  <strong>{item.name}</strong>
-                  {item.description && <small className="material-desc">{item.description}</small>}
-                </div>
-                <span className="material-symbol">{item.symbol}</span>
-                <span className="material-category-tag">{item.category}</span>
-                <span className="specific-value">
-                  {unit === 'cal' && (
-                    <>
-                      {item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}{' '}
-                      <small>cal/g·°C</small>
-                    </>
+          {/* ========================================================
+              VISUALIZAÇÃO MOBILE: CARDS MODERNOS COM FOCO NO POLEGAR
+             ======================================================== */}
+          <div className="table-mobile-cards-view">
+            {filtered.map((item) => {
+              const barPercent = Math.min(100, Math.max(3, (item.value / maxCal) * 100))
+              return (
+                <div key={item.name} className="mobile-material-card">
+                  <div className="card-top-row">
+                    <div className="card-identity">
+                      <span
+                        className="mobile-material-dot"
+                        style={{ backgroundColor: item.color || '#3b82f6' }}
+                      />
+                      <div>
+                        <strong className="mobile-material-name">{item.name}</strong>
+                        {item.symbol && item.symbol !== '—' && (
+                          <span className="mobile-symbol-badge">{item.symbol}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="category-pill-tag mini">{item.category}</span>
+                  </div>
+
+                  <div className="card-c-section">
+                    <div className="c-numbers-box">
+                      <span className="c-main-val">
+                        <strong>{item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</strong> cal/g·°C
+                      </span>
+                      <span className="c-sec-val">
+                        ({item.valueJ.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} J/g·°C)
+                      </span>
+                    </div>
+
+                    <div className="heat-bar-track">
+                      <div
+                        className="heat-bar-fill"
+                        style={{
+                          width: `${barPercent}%`,
+                          backgroundColor: item.color || 'var(--orange)',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {item.description && (
+                    <p className="mobile-material-desc">{item.description}</p>
                   )}
-                  {unit === 'J' && (
-                    <>
-                      {item.valueJ.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}{' '}
-                      <small>J/g·°C</small>
-                    </>
-                  )}
-                  {unit === 'ambas' && (
-                    <div className="dual-unit">
-                      <span>{item.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} <small>cal/g·°C</small></span>
-                      <span className="si-value">{item.valueJ.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} <small>J/g·°C</small></span>
+
+                  {(item.meltingPoint !== undefined || item.boilingPoint !== undefined) && (
+                    <div className="mobile-phase-row">
+                      {item.meltingPoint !== undefined && (
+                        <span>Fusão: <b>{item.meltingPoint} °C</b></span>
+                      )}
+                      {item.boilingPoint !== undefined && (
+                        <span>Ebulição: <b>{item.boilingPoint} °C</b></span>
+                      )}
                     </div>
                   )}
-                </span>
 
-                <div className="phase-properties-col">
-                  {item.meltingPoint !== undefined && (
-                    <small title="Ponto de Fusão">
-                      Fusão: <b>{item.meltingPoint} °C</b>
-                      {item.latentFusion ? ` (Lf = ${item.latentFusion} cal/g)` : ''}
-                    </small>
-                  )}
-                  {item.boilingPoint !== undefined && (
-                    <small title="Ponto de Ebulição">
-                      Ebulição: <b>{item.boilingPoint} °C</b>
-                      {item.latentVaporization ? ` (Lv = ${item.latentVaporization} cal/g)` : ''}
-                    </small>
-                  )}
-                  {item.meltingPoint === undefined && item.boilingPoint === undefined && (
-                    <small className="text-dim">—</small>
-                  )}
-                </div>
-
-                <div className="table-actions-cell">
-                  <button
-                    type="button"
-                    className="quick-copy-btn"
-                    onClick={() => copySpecificHeat(item)}
-                    title="Copiar valor de calor específico"
-                  >
-                    {copiedName === item.name ? '✓ Copiado' : '📋 Copiar'}
-                  </button>
-                  {onSelectMaterial && (
+                  <div className="card-actions-row">
                     <button
                       type="button"
-                      className="table-action-btn"
-                      onClick={() => onSelectMaterial(item.name)}
-                      title={`Usar ${item.name} na calculadora`}
+                      className="btn-table-copy"
+                      onClick={() => copySpecificHeat(item)}
                     >
-                      Calcular →
+                      {copiedName === item.name ? '✓ Copiado' : '📋 Copiar'}
                     </button>
-                  )}
+                    {onSelectMaterial && (
+                      <button
+                        type="button"
+                        className="btn-table-use"
+                        onClick={() => onSelectMaterial(item.name)}
+                      >
+                        Usar na Calculadora ➜
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
-      <div className="note-box">
-        <span>💡</span>
-        <div>
-          <strong>Curiosidade Didática e Conexão com o Cotidiano:</strong> Metais como ouro, chumbo e ferro possuem baixíssimo calor específico (em torno de 0,03 a 0,11 cal/g·°C), por isso aquecem e esfriam quase instantaneamente quando expostos a fontes térmicas. Já a água líquida exige 1,00 cal/g·°C (4,18 J/g·°C) — quase 10 vezes mais que o ferro e 32 vezes mais que o ouro! É esse fenômeno que explica a brisa marítima nas praias e a estabilidade de temperatura no corpo humano (composto em cerca de 70% por água).
+      {/* CURIOSIDADE DIDÁTICA E CONEXÃO COM O COTIDIANO */}
+      <div className="fresh-note-box">
+        <div className="note-box-header">
+          <span className="note-lamp-icon" aria-hidden="true">💡</span>
+          <strong>Conexão com a Natureza &amp; Cotidiano (Inércia Térmica)</strong>
         </div>
+        <p>
+          Metais como ouro, chumbo e ferro possuem baixíssimo calor específico (em torno de <strong>0,03 a 0,11 cal/g·°C</strong>),
+          por isso aquecem e esfriam quase instantaneamente ao receber calor. Em contrapartida, a <strong>água líquida</strong> exige
+          <strong> 1,00 cal/g·°C (4,18 J/g·°C)</strong> — quase 10 vezes mais que o ferro e 32 vezes mais que o ouro!
+          É essa inércia térmica que estabiliza o clima nas cidades litorâneas (efeito maritimidade) e mantém a temperatura do corpo humano estável.
+        </p>
       </div>
     </section>
   )

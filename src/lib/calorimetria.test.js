@@ -47,10 +47,10 @@ describe('calorimetria', () => {
   })
 
   it('formata todos os números em notação científica matemática na calculadora', () => {
-    expect(formatCalculatorNumber(1250000)).toBe('1,25·10⁶')
-    expect(formatCalculatorNumber(-0.0000125)).toBe('-1,25·10⁻⁵')
+    expect(formatCalculatorNumber(1250000)).toBe('1,25 · 10⁶')
+    expect(formatCalculatorNumber(-0.0000125)).toBe('-1,25 · 10⁻⁵')
     expect(formatCalculatorNumber(0)).toBe('0')
-    expect(formatCalculatorNumber(1250)).toBe('1,25·10³')
+    expect(formatCalculatorNumber(1250)).toBe('1,25 · 10³')
     expect(formatCalculatorNumber(1)).toBe('1')
     expect(formatCalculatorNumber(1.25)).toBe('1,25')
   })
@@ -137,8 +137,8 @@ describe('calorimetria', () => {
       formatValue: formatCalculatorNumber,
     })
     expect(steps[0]).toBe('Q = m · c · ΔT')
-    expect(steps[2]).toContain('2·10² g')
-    expect(steps[3]).toContain('Q = 5·10³ cal')
+    expect(steps[2]).toContain('2 · 10² g')
+    expect(steps[3]).toContain('Q = 5 · 10³ cal')
   })
 
   it('gera texto completo formatado para cópia de resolução', () => {
@@ -153,7 +153,7 @@ describe('calorimetria', () => {
       formatValue: formatCalculatorNumber,
     })
     expect(text).toContain('TermoLab — Resolução Calorimétrica')
-    expect(text).toContain('Q = 5·10³ cal')
+    expect(text).toContain('Q = 5 · 10³ cal')
   })
 
   it('usa notação científica nos passos e na resolução copiada', () => {
@@ -167,11 +167,11 @@ describe('calorimetria', () => {
       formatValue: formatCalculatorNumber,
     }
 
-    expect(calculationSteps(options)[3]).toContain('Q = 1·10⁶')
+    expect(calculationSteps(options)[3]).toContain('Q = 1 · 10⁶')
     expect(formatFullResolutionText({
       ...options,
       material: 'Água (líquida)',
-    })).toContain('Resultado Final: Q = 1·10⁶')
+    })).toContain('Resultado Final: Q = 1 · 10⁶')
   })
 
   it('calcula equivalências térmicas', () => {

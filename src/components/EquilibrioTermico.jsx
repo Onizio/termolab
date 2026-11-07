@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { SUBSTANCIAS } from '../data/substancias'
 import {
   formatInputValue,
@@ -64,11 +64,22 @@ export default function EquilibrioTermico() {
   const [searchTerm, setSearchTerm] = useState('')
 
   const [isSimulating, setIsSimulating] = useState(false)
+  const rafRef = useRef(null)
+
+  useEffect(() => () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+  }, [])
   const [simProgress, setSimProgress] = useState(100)
   const [copied, setCopied] = useState(false)
 
-  const categories = useMemo(() => {
-    return ['Todos', ...new Set(SUBSTANCIAS.map((s) => s.category).filter(Boolean))]
+  const categoryStats = useMemo(() => {
+    const rawCategories = ['Todos', ...new Set(SUBSTANCIAS.map((s) => s.category).filter(Boolean))]
+    return rawCategories.map((cat) => {
+      const count = cat === 'Todos'
+        ? SUBSTANCIAS.length
+        : SUBSTANCIAS.filter((s) => s.category === cat).length
+      return { name: cat, count }
+    })
   }, [])
 
   const filteredSubstances = useMemo(() => {
@@ -115,6 +126,7 @@ export default function EquilibrioTermico() {
 
   const runSimulation = () => {
     if (!canCalculate) return
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
     setCalculatedValues({ ...calculationValues })
     setIsSimulating(true)
     setSimProgress(0)
@@ -128,13 +140,14 @@ export default function EquilibrioTermico() {
       setSimProgress(Math.round(ease * 100))
 
       if (progress < 1) {
-        requestAnimationFrame(animate)
+        rafRef.current = requestAnimationFrame(animate)
       } else {
+        rafRef.current = null
         setIsSimulating(false)
         setSimProgress(100)
       }
     }
-    requestAnimationFrame(animate)
+    rafRef.current = requestAnimationFrame(animate)
   }
 
   const assignSubstance = (slot, substance) => {
@@ -276,13 +289,43 @@ export default function EquilibrioTermico() {
     <section className="content-section interactive-equilibrium-section">
       <div className="section-intro">
         <div>
-          <div className="eyebrow">✦ 04 / simulação interativa de calorimetria</div>
+          <div className="eyebrow">02 / sistema adiabático isolado</div>
           <h2>Simulador Interativo de Equilíbrio Térmico</h2>
         </div>
         <p>
           Arraste substâncias da paleta para os <strong>Espaços 1 e 2</strong> dentro do calorímetro adiabático.
           Ajuste as massas e temperaturas iniciais e clique em <strong>Calcular Equilíbrio Térmico</strong> para ver a troca de calor e o equilíbrio no centro.
         </p>
+      </div>
+
+      {/* CARDS DE DESTAQUE TERMODINÂMICO (HERO STATS) */}
+      <div className="table-hero-stats">
+        <div className="hero-stat-card high-capacity">
+          <div className="stat-card-badge">⚖️ Lei da Conservação</div>
+          <div className="stat-card-value">Σ Q = 0</div>
+          <div className="stat-card-name">Sistema Adiabático Isolado</div>
+          <p className="stat-card-desc">
+            Todo o calor cedido pelo corpo mais quente (|Q| &lt; 0) é integralmente absorvido pelo corpo mais frio (Q &gt; 0).
+          </p>
+        </div>
+
+        <div className="hero-stat-card low-capacity">
+          <div className="stat-card-badge">🌡️ Temperatura de Equilíbrio</div>
+          <div className="stat-card-value">{result ? `${formatNumber(result.equilibrium)} °C` : 'Teq'}</div>
+          <div className="stat-card-name">Média Ponderada Térmica</div>
+          <p className="stat-card-desc">
+            A temperatura final tende sempre para o corpo com maior capacidade térmica (C = m · c).
+          </p>
+        </div>
+
+        <div className="hero-stat-card count-capacity">
+          <div className="stat-card-badge">🧪 Inércia Térmica</div>
+          <div className="stat-card-value">C = m · c <small>cal/°C</small></div>
+          <div className="stat-card-name">Capacidade Térmica Total</div>
+          <p className="stat-card-desc">
+            Quanto maior a capacidade térmica, mais estável o corpo permanece frente à troca de calor.
+          </p>
+        </div>
       </div>
 
       <div className="presets-bar">
@@ -310,116 +353,131 @@ export default function EquilibrioTermico() {
         </div>
       </div>
 
-      {/* PALETA DE ELEMENTOS E MATERIAIS */}
-      <div className="elements-shelf-panel panel">
-        <div className="shelf-header">
-          <div className="shelf-title-box">
-            <span className="shelf-icon">🧪</span>
+      {/* PALETA DE ELEMENTOS E MATERIAIS REDESENHADA */}
+      <div className="fresh-elements-shelf">
+        <div className="shelf-header-fresh">
+          <div className="shelf-title-fresh">
+            <span className="shelf-icon-badge">🧪</span>
             <div>
-              <h3>Paleta de Elementos e Materiais</h3>
-              <p className="shelf-subtitle">
-                Pegue e <strong>arraste</strong> qualquer elemento abaixo para o <strong>Espaço 1</strong> ou <strong>Espaço 2</strong>, ou clique nos botões rápidos <code>[→ 1]</code> e <code>[→ 2]</code>.
-              </p>
+              <h3>Paleta Interativa de Materiais</h3>
+              <p>Clique nos botões de espaço ou arraste para preencher os corpos do experimento.</p>
             </div>
           </div>
 
-          <div className="shelf-controls">
-            <div className="shelf-search">
-              <input
-                type="search"
-                placeholder="Buscar elemento (ex: Fe, Cu, Água)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                aria-label="Buscar elemento na paleta"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  className="shelf-clear-search"
-                  onClick={() => setSearchTerm('')}
-                  title="Limpar busca"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <div className="shelf-categories-chips">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`shelf-cat-chip ${activeCategory === cat ? 'active' : ''}`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          <div className="shelf-search-box">
+            <span className="search-icon-svg" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Buscar elemento (ex: Fe, Cu, Água)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Buscar elemento na paleta"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="clear-search-pill-btn"
+                onClick={() => setSearchTerm('')}
+                title="Limpar busca"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="elements-widgets-grid" role="list" aria-label="Lista de elementos arrastáveis">
+        <div className="shelf-chips-scroll">
+          {categoryStats.map((cat) => (
+            <button
+              key={cat.name}
+              type="button"
+              className={`table-category-chip ${activeCategory === cat.name ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat.name)}
+            >
+              <span>{cat.name}</span>
+              <span className="chip-count-badge">{cat.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="elements-cards-grid" role="list" aria-label="Lista de elementos arrastáveis">
           {filteredSubstances.map((sub) => {
             const isSelectedInSlot1 = substance1?.name === sub.name
             const isSelectedInSlot2 = substance2?.name === sub.name
+            const maxCal = 1.0
+            const barPercent = Math.min(100, Math.max(3, (sub.value / maxCal) * 100))
 
             return (
               <div
                 key={sub.name}
-                className={`element-widget-card ${
+                className={`fresh-element-card ${
                   draggedItem?.name === sub.name ? 'is-dragging' : ''
-                } ${isSelectedInSlot1 ? 'in-slot-1' : ''} ${isSelectedInSlot2 ? 'in-slot-2' : ''}`}
+                } ${isSelectedInSlot1 ? 'slot1-active' : ''} ${isSelectedInSlot2 ? 'slot2-active' : ''}`}
                 draggable={true}
                 onDragStart={(e) => handleDragStart(e, sub)}
                 onDragEnd={handleDragEnd}
                 title={`${sub.name} (${sub.symbol}) — c = ${sub.value} cal/g·°C. Arraste ou use os botões.`}
                 role="listitem"
               >
-                <div className="widget-drag-indicator" title="Segure e arraste este elemento">
-                  ⋮⋮
+                <div className="elem-card-header">
+                  <div className="elem-identity">
+                    <span
+                      className="elem-color-dot"
+                      style={{ backgroundColor: sub.color || '#3b82f6' }}
+                    />
+                    <strong className="elem-name" title={sub.name}>{sub.name}</strong>
+                    {sub.symbol && sub.symbol !== '—' && (
+                      <span className="elem-symbol-pill">{sub.symbol}</span>
+                    )}
+                  </div>
+                  <span className="elem-cat-tag">{sub.category}</span>
                 </div>
 
-                <div
-                  className="widget-symbol-avatar"
-                  style={{
-                    backgroundColor: `${sub.color}22`,
-                    borderColor: sub.color,
-                    color: sub.color,
-                  }}
-                >
-                  {sub.symbol}
-                </div>
-
-                <div className="widget-info">
-                  <strong className="widget-name" title={sub.name}>{sub.name}</strong>
-                  <div className="widget-props">
-                    <span className="widget-c-badge" title="Calor específico em cal/g·°C">
-                      c = <b>{formatInputValue(sub.value)}</b> <small>cal/g·°C</small>
+                <div className="elem-heat-capacity-row">
+                  <div className="elem-c-values">
+                    <span className="elem-c-cal">
+                      c = <strong>{formatInputValue(sub.value)}</strong> <small>cal/g·°C</small>
                     </span>
-                    <span className="widget-category-tag">{sub.category}</span>
+                    <span className="elem-c-joule">
+                      ({formatInputValue(sub.valueJ)} J/g·°C)
+                    </span>
+                  </div>
+
+                  <div className="heat-bar-track" title={`${sub.name}: ${barPercent.toFixed(0)}% da inércia da água`}>
+                    <div
+                      className="heat-bar-fill"
+                      style={{
+                        width: `${barPercent}%`,
+                        backgroundColor: sub.color || 'var(--orange)',
+                      }}
+                    />
                   </div>
                 </div>
 
-                <div className="widget-actions">
-                  <button
-                    type="button"
-                    className="quick-slot-btn slot-1-btn"
-                    onClick={() => assignSubstance(1, sub)}
-                    title={`Colocar ${sub.name} no Espaço 1`}
-                    aria-label={`Colocar ${sub.name} no Espaço 1`}
-                  >
-                    → 1
-                  </button>
-                  <button
-                    type="button"
-                    className="quick-slot-btn slot-2-btn"
-                    onClick={() => assignSubstance(2, sub)}
-                    title={`Colocar ${sub.name} no Espaço 2`}
-                    aria-label={`Colocar ${sub.name} no Espaço 2`}
-                  >
-                    → 2
-                  </button>
+                <div className="elem-card-footer">
+                  <div className="elem-slot-buttons">
+                    <button
+                      type="button"
+                      className={`btn-assign-slot slot-1 ${isSelectedInSlot1 ? 'assigned' : ''}`}
+                      onClick={() => assignSubstance(1, sub)}
+                      title={`Colocar ${sub.name} no Espaço 1`}
+                    >
+                      {isSelectedInSlot1 ? '✓ No Espaço 1' : '→ Espaço 1'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-assign-slot slot-2 ${isSelectedInSlot2 ? 'assigned' : ''}`}
+                      onClick={() => assignSubstance(2, sub)}
+                      title={`Colocar ${sub.name} no Espaço 2`}
+                    >
+                      {isSelectedInSlot2 ? '✓ No Espaço 2' : '→ Espaço 2'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -430,7 +488,7 @@ export default function EquilibrioTermico() {
       <div className="calorimeter-chamber-container">
         <div className="calorimeter-outer-casing">
           <div className="calorimeter-badge-tag">
-            <span className="insulation-icon">🛡️</span> Calorímetro Adiabático Ideal (Isolado termicamente / Trocas restritas aos 2 corpos)
+            <span className="insulation-icon">🛡️</span> Calorímetro adiabático ideal · sistema isolado
           </div>
 
           <div className="calorimeter-interior-grid">
@@ -444,7 +502,7 @@ export default function EquilibrioTermico() {
               <div className="slot-chamber-header">
                 <span className="slot-badge badge-1">Espaço 1 (Corpo A)</span>
                 <span className="drop-hint-text">
-                  {dragOverSlot === 1 ? 'Solte aqui!' : 'Arraste ou solte aqui'}
+                  {dragOverSlot === 1 ? 'Solte aqui!' : 'Arraste ou escolha na paleta'}
                 </span>
               </div>
 
@@ -738,7 +796,7 @@ export default function EquilibrioTermico() {
               <div className="slot-chamber-header">
                 <span className="slot-badge badge-2">Espaço 2 (Corpo B)</span>
                 <span className="drop-hint-text">
-                  {dragOverSlot === 2 ? 'Solte aqui!' : 'Arraste ou solte aqui'}
+                  {dragOverSlot === 2 ? 'Solte aqui!' : 'Arraste ou escolha na paleta'}
                 </span>
               </div>
 

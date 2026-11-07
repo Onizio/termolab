@@ -19,6 +19,7 @@ import EquilibrioTermico from './components/EquilibrioTermico'
 import CombustaoEtanol from './components/CombustaoEtanol'
 import CompararSubstancias from './components/CompararSubstancias'
 import IlustracaoCalorimetria from './components/IlustracaoCalorimetria'
+import HeaderTabfolio from './components/HeaderTabfolio'
 
 const LABELS = {
   q: 'Calor (Q)',
@@ -91,25 +92,33 @@ const SUPERSCRIPT_CHARACTERS = {
 }
 
 function renderScientificText(text) {
-  const expression = /(.*?·10)([⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)/gu
+  if (typeof text !== 'string') return text
+  const expression = /([−-]?\d+(?:,\d+)?)\s*([·•×*])\s*10([⁺⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)/gu
   const parts = []
   let cursor = 0
 
   for (const match of text.matchAll(expression)) {
-    parts.push(text.slice(cursor, match.index))
-    const exponent = [...match[2]]
+    if (match.index > cursor) {
+      parts.push(text.slice(cursor, match.index))
+    }
+    const exponent = [...match[3]]
       .map((character) => SUPERSCRIPT_CHARACTERS[character] ?? character)
       .join('')
     parts.push(
-      <span key={match.index}>
-        {match[1]}<sup className="scientific-exponent">{exponent}</sup>
+      <span key={match.index} className="scientific-notation">
+        <span className="scientific-mantissa">{match[1]}</span>
+        <span className="scientific-dot" aria-hidden="true"> {match[2]} </span>
+        <span className="scientific-base">10</span>
+        <sup className="scientific-exponent">{exponent}</sup>
       </span>,
     )
     cursor = match.index + match[0].length
   }
 
-  parts.push(text.slice(cursor))
-  return parts
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor))
+  }
+  return parts.length > 0 ? parts : text
 }
 
 function renderCalculatorNumber(value) {
@@ -332,66 +341,89 @@ function App() {
 
   return (
     <div className={darkMode ? 'app-shell dark-mode' : 'app-shell'}>
-      {/* CABEÇALHO */}
-      <header className="topbar">
-        <a className="brand" href="#inicio" aria-label="TermoLab início">
-          <span className="brand-mark">◒</span>
-          <span>
-            termo<span>lab</span>
-          </span>
-        </a>
+      {/* CABEÇALHO DESKTOP ESTILO TABFOLIO + MOBILE DOCK */}
+      <HeaderTabfolio
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        darkMode={darkMode}
+        onToggleTheme={() => setDarkMode((current) => !current)}
+      />
 
-        <nav className="nav-links" aria-label="Navegação principal">
-          {[
-            ['calculadora', 'Calculadora'],
-            ['equilibrio', 'Equilíbrio Térmico'],
-            ['combustao', 'Combustão do Etanol'],
-            ['comparar', 'Comparar Substâncias'],
-            ['tabela', 'Tabela de Calores'],
-            ['guia', 'Como Funciona'],
-          ].map(([key, text]) => (
-            <button
-              key={key}
-              type="button"
-              className={activeTab === key ? 'nav-link active' : 'nav-link'}
-              onClick={() => setActiveTab(key)}
-            >
-              {text}
-            </button>
-          ))}
-        </nav>
-
-        <div className="topbar-actions">
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={() => setDarkMode((current) => !current)}
-            aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-          >
-            {darkMode ? '☀ Claro' : '☾ Escuro'}
-          </button>
-          <span className="status-pill">
-            <i /> Modo Estudo
-          </span>
-        </div>
-      </header>
-
-      <main id="inicio">
+      <main id="inicio" data-active-tool={activeTab}>
         {/* HERO SECTION */}
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">✦ laboratório virtual de termoquímica</div>
             <h1>
-              O calor está<br />
+              O calor está<br />{' '}
               <em>em movimento.</em>
             </h1>
             <p>
-              Explore massa, calor específico e temperatura. Manipule a fórmula fundamental <strong>Q = m·c·ΔT</strong>,
-              simule trocas térmicas, compare materiais e compreenda os fenômenos termodinâmicos.
+              Explore a relação entre massa, calor específico e temperatura.<br />
+              Calcule <strong>Q = m·c·ΔT</strong> e simule trocas térmicas para comparar materiais.
             </p>
-            <div className="formula-chip">
-              <span>Q</span> <b>=</b> <span>m</span> <b>·</b> <span>c</span> <b>·</b> <span>ΔT</span>
+
+            {/* FÓRMULA LIMPA (SEM LEGENDAS INFERIORES) */}
+            <div className="formula-chip" role="region" aria-label="Equação fundamental da calorimetria">
+              <button
+                type="button"
+                className="formula-term"
+                title="Q = Quantidade de Calor (clique para calcular Q)"
+                onClick={() => {
+                  setUnknown('q')
+                  setActiveTab('calculadora')
+                }}
+              >
+                <span>Q</span>
+              </button>
+              <b className="formula-op">=</b>
+              <button
+                type="button"
+                className="formula-term"
+                title="m = Massa da amostra (clique para calcular m)"
+                onClick={() => {
+                  setUnknown('m')
+                  setActiveTab('calculadora')
+                }}
+              >
+                <span>m</span>
+              </button>
+              <b className="formula-op">·</b>
+              <button
+                type="button"
+                className="formula-term"
+                title="c = Calor específico (clique para ver tabela de calores)"
+                onClick={() => setActiveTab('tabela')}
+              >
+                <span>c</span>
+              </button>
+              <b className="formula-op">·</b>
+              <button
+                type="button"
+                className="formula-term"
+                title="ΔT = Variação de temperatura (clique para calcular ΔT)"
+                onClick={() => {
+                  setUnknown('deltaT')
+                  setActiveTab('calculadora')
+                }}
+              >
+                <span>ΔT</span>
+              </button>
             </div>
+
+            <a
+              href="#ferramenta-ativa"
+              className="mobile-jump-btn"
+              onClick={(e) => {
+                e.preventDefault()
+                const el = document.getElementById('ferramenta-ativa')
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              }}
+            >
+              Acessar Ferramenta Ativa ↓
+            </a>
           </div>
 
           <div className="hero-visual" aria-hidden="true">
@@ -405,6 +437,9 @@ function App() {
           </div>
         </section>
 
+        {/* MARCADOR DE FOCO PARA ROLAGEM MÓVEL */}
+        <div id="ferramenta-ativa" />
+
         {/* ABA: CALCULADORA */}
         {activeTab === 'calculadora' && (
           <section className="workbench">
@@ -414,6 +449,36 @@ function App() {
                 <h2>Calculadora de Calorimetria</h2>
               </div>
               <p>Escolha a incógnita desejada e acompanhe o isolamento algébrico e a resolução passo a passo.</p>
+            </div>
+
+            {/* CARDS DE DESTAQUE TERMODINÂMICO (HERO STATS) */}
+            <div className="table-hero-stats">
+              <div className="hero-stat-card high-capacity">
+                <div className="stat-card-badge">🔥 Calor Sensível (Q)</div>
+                <div className="stat-card-value">{resultValue !== null && unknown === 'q' ? renderCalculatorNumber(resultValue) : 'Q = m·c·ΔT'} <small>{unknown === 'q' ? qUnit : ''}</small></div>
+                <div className="stat-card-name">Energia Térmica em Trânsito</div>
+                <p className="stat-card-desc">
+                  Transferência de calor motivada exclusivamente pela diferença de temperatura entre corpos.
+                </p>
+              </div>
+
+              <div className="hero-stat-card low-capacity">
+                <div className="stat-card-badge">💧 Referência da Água</div>
+                <div className="stat-card-value">1,00 <small>cal/g·°C</small></div>
+                <div className="stat-card-name">4,18 J/g·°C (Padrão SI)</div>
+                <p className="stat-card-desc">
+                  Padrão do Ensino Médio brasileiro: a água exige 1 caloria para elevar 1 g em 1 °C.
+                </p>
+              </div>
+
+              <div className="hero-stat-card count-capacity">
+                <div className="stat-card-badge">🎯 Incógnita Ativa</div>
+                <div className="stat-card-value">{unknown === 'deltaT' ? 'ΔT' : unknown === 'q' ? 'Q' : unknown}</div>
+                <div className="stat-card-name">Isolamento Algébrico</div>
+                <p className="stat-card-desc">
+                  Alterne livremente a grandeza desejada com conversão instantânea de unidades (cal, J, g, kg).
+                </p>
+              </div>
             </div>
 
             {/* PRESETS DE ESTUDO */}

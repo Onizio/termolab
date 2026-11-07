@@ -44,7 +44,7 @@ export default function CompararSubstancias() {
     <section className="content-section extra-section">
       <div className="section-intro">
         <div>
-          <div className="eyebrow">07 / inércia térmica comparativa</div>
+          <div className="eyebrow">04 / inércia térmica comparativa</div>
           <h2>Comparação entre Substâncias</h2>
         </div>
         <p>
@@ -103,9 +103,9 @@ export default function CompararSubstancias() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="deltaTAsc">Menor variação térmica (Maior inércia / c)</option>
-              <option value="deltaTDesc">Maior variação térmica (Menor inércia / c)</option>
-              <option value="capacityDesc">Maior Calor Específico</option>
+              <option value="deltaTAsc">Menor ΔT · maior inércia</option>
+              <option value="deltaTDesc">Maior ΔT · menor inércia</option>
+              <option value="capacityDesc">Maior calor específico</option>
               <option value="name">Ordem Alfabética</option>
             </select>
           </div>

@@ -76,7 +76,7 @@ export function formatCalculatorNumber(value) {
     .map((digit) => superscriptDigits[digit] ?? digit)
     .join('')
 
-  return `${mantissa}·10${exponentSign}${superscriptExponent}`
+  return `${mantissa} · 10${exponentSign}${superscriptExponent}`
 }
 
 /**
